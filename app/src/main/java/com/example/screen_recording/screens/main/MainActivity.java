@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 
+import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
@@ -27,14 +28,22 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.SparseIntArray;
+import android.view.MenuItem;
 import android.view.Surface;
 import android.view.View;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import android.widget.VideoView;
 
 import com.example.screen_recording.R;
+import com.example.screen_recording.SettingActivity;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Date;
@@ -44,6 +53,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CODE = 1000;
     private static final int REQUEST_PERMISSION = 1001;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    private boolean isRecord = false;
+    private boolean isPause = false;
+    private String videoUri = "";
 
     private MediaProjectionManager mediaProjectionManager;
     private MediaProjection mediaProjection;
@@ -52,8 +64,8 @@ public class MainActivity extends AppCompatActivity {
     private MediaRecorder mediaRecorder;
 
     private int mScreenDensity;
-    private static final int DISPLAY_WIDTH = 720;
-    private static final int DISPLAY_HEIGHT = 1280;
+    private static int DISPLAY_WIDTH = 720;
+    private static int DISPLAY_HEIGHT = 1280;
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -64,9 +76,12 @@ public class MainActivity extends AppCompatActivity {
 
     //View
     private ConstraintLayout rootLayout;
-    private ToggleButton toggleButton;
     private VideoView videoView;
-    private String videoUri = "";
+    private Button buttonStart;
+    private Button buttonStop;
+    private RadioGroup radioGroup;
+    private RadioButton radioButton;
+    private ImageButton imageButtonToggle;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -77,17 +92,49 @@ public class MainActivity extends AppCompatActivity {
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
         mScreenDensity = metrics.densityDpi;
+        DISPLAY_WIDTH = metrics.widthPixels;
+        DISPLAY_HEIGHT = metrics.heightPixels;
+
 
         mediaRecorder = new MediaRecorder();
         mediaProjectionManager = (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
 
         // View
         videoView = findViewById(R.id.videoView);
-        toggleButton = findViewById(R.id.toggleButton);
         rootLayout = findViewById(R.id.rootLayout);
+        buttonStart = findViewById(R.id.buttonStart);
+        buttonStop = findViewById(R.id.buttonStop);
+        radioGroup = findViewById(R.id.radioGroupFPS);
+        imageButtonToggle = findViewById(R.id.imageButtonToggle);
 
-        //event
-        toggleButton.setOnClickListener(new View.OnClickListener() {
+        // Bottom Navigation
+        BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigation);
+        bottomNavigationView.setSelectedItemId(R.id.mainMenu);
+
+        bottomNavigationView.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.mainMenu:
+                        return true;
+                    case R.id.settingMenu:
+                        startActivity(new Intent(getApplicationContext(), SettingActivity.class));
+                        overridePendingTransition(0, 0);
+                        return true;
+                }
+                return false;
+            }
+        });
+
+        // get Quality
+        int selectFPSid = radioGroup.getCheckedRadioButtonId();
+        radioButton = findViewById(selectFPSid);
+        String btnQuality = String.valueOf(radioButton.getText());
+        final int QUALITY = Integer.parseInt(btnQuality.substring(0, btnQuality.length() - 1));
+        Log.i("result", String.valueOf(QUALITY));
+
+        // Event
+        buttonStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -97,7 +144,6 @@ public class MainActivity extends AppCompatActivity {
                     if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                             || ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.RECORD_AUDIO)) {
 
-                        toggleButton.setChecked(false);
                         Snackbar.make(rootLayout, "Права доступа", Snackbar.LENGTH_INDEFINITE)
                                 .setAction("Включить", new View.OnClickListener() {
                                     @Override
@@ -121,27 +167,49 @@ public class MainActivity extends AppCompatActivity {
                                 }, REQUEST_PERMISSION);
                     }
                 } else {
-                    toggleScreenShare(v);
+                    initRecorder(QUALITY);
+                    recorderScreen();
+                }
+            }
+        });
+
+        buttonStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isRecord) {
+                    mediaRecorder.stop();
+                    mediaRecorder.reset();
+                    stopRecordScreen();
+                    Toast.makeText(MainActivity.this, "Конец записи", Toast.LENGTH_SHORT).show();
+                }
+
+                videoView.setVisibility(View.VISIBLE);
+                videoView.setVideoURI(Uri.parse(videoUri));
+                videoView.start();
+            }
+        });
+
+
+        // Pause and Resume record
+        imageButtonToggle.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.N)
+            @Override
+            public void onClick(View v) {
+                if (isRecord) {
+                    if (!isPause) {
+                        mediaRecorder.pause();
+                        isPause = true;
+                        imageButtonToggle.setImageResource(R.drawable.pause);
+                    } else {
+                        mediaRecorder.resume();
+                        isPause = false;
+                        imageButtonToggle.setImageResource(R.drawable.play);
+                    }
                 }
             }
         });
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private void toggleScreenShare(View v) {
-        if (((ToggleButton) v).isChecked()) {
-            initRecorder();
-            recorderScreen();
-        } else {
-            mediaRecorder.stop();
-            mediaRecorder.reset();
-            stopRecordScreen();
-
-            videoView.setVisibility(View.VISIBLE);
-            videoView.setVideoURI(Uri.parse(videoUri));
-            videoView.start();
-        }
-    }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void recorderScreen() {
@@ -161,8 +229,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private void initRecorder() {
+    private void initRecorder(int QUALITY) {
         try {
+            isRecord = true;
+            CamcorderProfile cpHigh;
+            switch (QUALITY){
+                case 1080:
+                    cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_1080P);
+                    break;
+                case 720:
+                    cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_720P);
+                    break;
+                default:
+                    cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_480P);
+                    break;
+            }
+
             mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
             mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
@@ -177,20 +259,19 @@ public class MainActivity extends AppCompatActivity {
             mediaRecorder.setVideoSize(DISPLAY_WIDTH, DISPLAY_HEIGHT);
             mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
             mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-            mediaRecorder.setVideoEncodingBitRate(512 * 1000);
-            mediaRecorder.setVideoFrameRate(30);
+            mediaRecorder.setVideoEncodingBitRate(cpHigh.videoBitRate);
+            mediaRecorder.setCaptureRate(15);
+            mediaRecorder.setVideoFrameRate(15);
 
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
             int orientation = ORIENTATIONS.get(rotation + 90);
             mediaRecorder.setOrientationHint(orientation);
             mediaRecorder.prepare();
+            Toast.makeText(this, "Запись началась", Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
-    // ctrl + o
-
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
@@ -204,7 +285,6 @@ public class MainActivity extends AppCompatActivity {
 
         if (resultCode != RESULT_OK) {
             Toast.makeText(this, "Доступ запрещен", Toast.LENGTH_SHORT).show();
-            toggleButton.setChecked(false);
             return;
         }
 
@@ -221,11 +301,8 @@ public class MainActivity extends AppCompatActivity {
     private class MediaProjectionCallBack extends MediaProjection.Callback {
         @Override
         public void onStop() {
-            if (toggleButton.isChecked()) {
-                toggleButton.setChecked(false);
-                mediaRecorder.stop();
-                mediaRecorder.reset();
-            }
+            mediaRecorder.stop();
+            mediaRecorder.reset();
             mediaProjection = null;
             stopRecordScreen();
             super.onStop();
@@ -254,29 +331,26 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode){
-            case REQUEST_PERMISSION:
-                {
-                    if ((grantResults.length > 0) && (grantResults[0] + grantResults[1] == PackageManager.PERMISSION_GRANTED)) {
-                        toggleScreenShare(toggleButton);
-                    } else {
-                        toggleButton.setChecked(false);
-                        Snackbar.make(rootLayout, "Права доступа", Snackbar.LENGTH_INDEFINITE)
-                                .setAction("Включить", new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        ActivityCompat.requestPermissions(MainActivity.this,
-                                                new String[]{
+        switch (requestCode) {
+            case REQUEST_PERMISSION: {
+                if ((grantResults.length > 0) && (grantResults[0] + grantResults[1] == PackageManager.PERMISSION_GRANTED)) {
+                } else {
+                    Snackbar.make(rootLayout, "Права доступа", Snackbar.LENGTH_INDEFINITE)
+                            .setAction("Включить", new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    ActivityCompat.requestPermissions(MainActivity.this,
+                                            new String[]{
 
-                                                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                                                        Manifest.permission.RECORD_AUDIO
+                                                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                                    Manifest.permission.RECORD_AUDIO
 
-                                                }, REQUEST_PERMISSION);
-                                    }
-                                }).show();
-                    }
-                    return;
+                                            }, REQUEST_PERMISSION);
+                                }
+                            }).show();
                 }
+                return;
+            }
         }
     }
 }
