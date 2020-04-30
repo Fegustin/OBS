@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 
+import android.media.AudioFormat;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.media.projection.MediaProjection;
@@ -27,6 +28,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseIntArray;
@@ -47,6 +49,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -126,13 +129,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // get Quality
-        int selectFPSid = radioGroup.getCheckedRadioButtonId();
-        radioButton = findViewById(selectFPSid);
-        String btnQuality = String.valueOf(radioButton.getText());
-        final int QUALITY = Integer.parseInt(btnQuality.substring(0, btnQuality.length() - 1));
-        Log.i("result", String.valueOf(QUALITY));
-
         // Event
         buttonStart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -140,6 +136,8 @@ public class MainActivity extends AppCompatActivity {
                 if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                         + ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO)
                         != PackageManager.PERMISSION_GRANTED) {
+
+                    Toast.makeText(MainActivity.this, "Для записи приложению нужны разрешения", Toast.LENGTH_SHORT).show();
 
                     if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                             || ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.RECORD_AUDIO)) {
@@ -167,8 +165,19 @@ public class MainActivity extends AppCompatActivity {
                                 }, REQUEST_PERMISSION);
                     }
                 } else {
-                    initRecorder(QUALITY);
-                    recorderScreen();
+                    // get Quality
+                    if (!isRecord) {
+                        int selectFPSid = radioGroup.getCheckedRadioButtonId();
+                        radioButton = findViewById(selectFPSid);
+                        String btnQuality = String.valueOf(radioButton.getText());
+                        final int QUALITY = Integer.parseInt(btnQuality.substring(0, btnQuality.length() - 1));
+
+                        initRecorder(QUALITY);
+                        recorderScreen();
+
+                        Snackbar.make(rootLayout, "Начало записи", Snackbar.LENGTH_SHORT)
+                                .show();
+                    }
                 }
             }
         });
@@ -180,7 +189,13 @@ public class MainActivity extends AppCompatActivity {
                     mediaRecorder.stop();
                     mediaRecorder.reset();
                     stopRecordScreen();
-                    Toast.makeText(MainActivity.this, "Конец записи", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(rootLayout, "Запись остановлена", Snackbar.LENGTH_SHORT)
+                            .show();
+
+                    isRecord = false;
+                } else {
+                    Snackbar.make(rootLayout, "Включите запись перед тем как её останавливать", Snackbar.LENGTH_SHORT)
+                            .show();
                 }
 
                 videoView.setVisibility(View.VISIBLE);
@@ -205,6 +220,9 @@ public class MainActivity extends AppCompatActivity {
                         isPause = false;
                         imageButtonToggle.setImageResource(R.drawable.play);
                     }
+                } else {
+                    Snackbar.make(rootLayout, "Включите запись перед тем как её останавливать", Snackbar.LENGTH_SHORT)
+                            .show();
                 }
             }
         });
@@ -233,41 +251,58 @@ public class MainActivity extends AppCompatActivity {
         try {
             isRecord = true;
             CamcorderProfile cpHigh;
+            int bitRateVideo;
             switch (QUALITY){
                 case 1080:
                     cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_1080P);
+                    bitRateVideo = 1000 * 10000;
                     break;
                 case 720:
                     cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_720P);
+                    bitRateVideo = 1000 * 4000;
                     break;
                 default:
                     cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_480P);
+                    bitRateVideo = 1000 * 2000;
                     break;
             }
 
             mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+            mediaRecorder.setAudioSamplingRate(44100);
+            mediaRecorder.setAudioEncodingBitRate(16*44100);
             mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
 
 
             // Переписать на более подхожящий код
-            videoUri = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                    + new StringBuilder("/EDMTRecord_").append(new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss")
-                    .format(new Date())).append(".mp4").toString();
+
+            String recordPath = MainActivity.this.getExternalFilesDir("/").getAbsolutePath();
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss", Locale.getDefault());
+            Date now = new Date();
+            videoUri = recordPath + "MagaRecord_" + dateFormat.format(now) + ".mp4";
+
+//            videoUri = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+//                    + new StringBuilder("/EDMTRecord_").append(new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss")
+//                    .format(new Date())).append(".mp4").toString();
+
+            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+            File f = new File(videoUri);
+            Uri contentUri = Uri.fromFile(f);
+            mediaScanIntent.setData(contentUri);
+            MainActivity.this.sendBroadcast(mediaScanIntent);
 
             mediaRecorder.setOutputFile(videoUri);
             mediaRecorder.setVideoSize(DISPLAY_WIDTH, DISPLAY_HEIGHT);
             mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
             mediaRecorder.setVideoEncodingBitRate(cpHigh.videoBitRate);
-            mediaRecorder.setCaptureRate(15);
-            mediaRecorder.setVideoFrameRate(15);
+            mediaRecorder.setCaptureRate(30);
+            mediaRecorder.setVideoFrameRate(30);
 
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
             int orientation = ORIENTATIONS.get(rotation + 90);
             mediaRecorder.setOrientationHint(orientation);
             mediaRecorder.prepare();
-            Toast.makeText(this, "Запись началась", Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();
         }
