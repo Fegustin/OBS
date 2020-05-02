@@ -1,4 +1,4 @@
-package com.example.screen_recording;
+package com.example.screen_recording.screens.setting;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -7,7 +7,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 
-import com.example.screen_recording.screens.main.MainActivity;
+import com.example.screen_recording.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class SettingActivity extends AppCompatActivity {
