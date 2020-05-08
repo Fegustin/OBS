@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -15,7 +16,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.SparseIntArray;
 import android.view.LayoutInflater;
 import android.view.Surface;
@@ -70,9 +73,8 @@ public class MainFragment extends Fragment {
     //View
     private CardView rootLayout;
     private VideoView videoView;
-    private Button buttonStart;
-    private Button buttonStop;
-    private ImageButton imageButtonToggle;
+    private ImageButton imageTogglePauseAndResume;
+    private ImageButton imageToggleRecord;
 
     @Nullable
     @Override
@@ -92,24 +94,25 @@ public class MainFragment extends Fragment {
         // View
         videoView = view.findViewById(R.id.videoView);
         rootLayout = view.findViewById(R.id.cardView);
-        buttonStart = view.findViewById(R.id.buttonStart);
-        buttonStop = view.findViewById(R.id.buttonStop);
-        imageButtonToggle = view.findViewById(R.id.imageButtonToggle);
+        imageTogglePauseAndResume = view.findViewById(R.id.imageTogglePauseAndResume);
+        imageToggleRecord = view.findViewById(R.id.imageToggleRecord);
 
         // Event
-        buttonStart.setOnClickListener(new View.OnClickListener() {
+
+        //Record Start and Stop
+        imageToggleRecord.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
                         + ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.RECORD_AUDIO)
                         != PackageManager.PERMISSION_GRANTED) {
 
-                    Toast.makeText(getActivity(), "Для записи приложению нужны разрешения", Toast.LENGTH_SHORT).show();
-
                     if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
                             || ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.RECORD_AUDIO)) {
 
-                        Snackbar.make(rootLayout, "Права доступа", Snackbar.LENGTH_INDEFINITE)
+                        isRecord = false;
+
+                        Snackbar.make(rootLayout, "Разрешения", Snackbar.LENGTH_INDEFINITE)
                                 .setAction("Включить", new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
@@ -132,48 +135,18 @@ public class MainFragment extends Fragment {
                                 }, REQUEST_PERMISSION);
                     }
                 } else {
+                    toggleRecord(isRecord);
                     // get Quality
-                    if (!isRecord) {
-//                        int selectFPSid = radioGroup.getCheckedRadioButtonId();
-//                        radioButton = findViewById(selectFPSid);
-//                        String btnQuality = String.valueOf(radioButton.getText());
-//                        final int QUALITY = Integer.parseInt(btnQuality.substring(0, btnQuality.length() - 1));
-
-                        initRecorder("720");
-                        recorderScreen();
-
-                        Snackbar.make(rootLayout, "Начало записи", Snackbar.LENGTH_SHORT)
-                                .show();
-                    }
+////                        int selectFPSid = radioGroup.getCheckedRadioButtonId();
+////                        radioButton = findViewById(selectFPSid);
+////                        String btnQuality = String.valueOf(radioButton.getText());
+////                        final int QUALITY = Integer.parseInt(btnQuality.substring(0, btnQuality.length() - 1));
                 }
             }
         });
-
-        buttonStop.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (isRecord) {
-                    mediaRecorder.stop();
-                    mediaRecorder.reset();
-                    stopRecordScreen();
-                    Snackbar.make(rootLayout, "Запись остановлена", Snackbar.LENGTH_SHORT)
-                            .show();
-
-                    isRecord = false;
-                } else {
-                    Snackbar.make(rootLayout, "Включите запись перед тем как её останавливать", Snackbar.LENGTH_SHORT)
-                            .show();
-                }
-
-                videoView.setVisibility(View.VISIBLE);
-                videoView.setVideoURI(Uri.parse(videoUri));
-                videoView.start();
-            }
-        });
-
 
         // Pause and Resume record
-        imageButtonToggle.setOnClickListener(new View.OnClickListener() {
+        imageTogglePauseAndResume.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.N)
             @Override
             public void onClick(View v) {
@@ -181,11 +154,11 @@ public class MainFragment extends Fragment {
                     if (!isPause) {
                         mediaRecorder.pause();
                         isPause = true;
-                        imageButtonToggle.setImageResource(R.drawable.pause);
+                        imageTogglePauseAndResume.setImageResource(R.drawable.pause);
                     } else {
                         mediaRecorder.resume();
                         isPause = false;
-                        imageButtonToggle.setImageResource(R.drawable.play);
+                        imageTogglePauseAndResume.setImageResource(R.drawable.play);
                     }
                 } else {
                     Snackbar.make(rootLayout, "Включите запись перед тем как её останавливать", Snackbar.LENGTH_SHORT)
@@ -195,6 +168,40 @@ public class MainFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void toggleRecord(boolean record) {
+        if (!record) {
+            isRecord = true;
+            imageToggleRecord.setImageResource(R.drawable.ic_album_red);
+
+            // get settings
+            SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            int quality = p.getInt("quality", 480);
+            boolean micro = p.getBoolean("micro", false);
+            int fps = p.getInt("FPS", 15);
+
+            initRecorder(quality, micro, fps);
+            recorderScreen();
+
+            Snackbar.make(rootLayout, "Начало записи", Snackbar.LENGTH_SHORT)
+                    .show();
+        } else {
+            isRecord = false;
+            imageToggleRecord.setImageResource(R.drawable.ic_album_gray);
+
+            mediaRecorder.stop();
+            mediaRecorder.reset();
+
+            Snackbar.make(rootLayout, "Запись остановлена", Snackbar.LENGTH_SHORT)
+                    .show();
+
+            stopRecordScreen();
+
+            videoView.setVisibility(View.VISIBLE);
+            videoView.setVideoURI(Uri.parse(videoUri));
+            videoView.start();
+        }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -215,15 +222,14 @@ public class MainFragment extends Fragment {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private void initRecorder(String QUALITY) {
+    private void initRecorder(int QUALITY, boolean isMicro, int fps) {
         try {
-            isRecord = true;
             CamcorderProfile cpHigh;
             switch (QUALITY) {
-                case "1080":
+                case 1080:
                     cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_1080P);
                     break;
-                case "720":
+                case 720:
                     cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_720P);
                     break;
                 default:
@@ -231,11 +237,18 @@ public class MainFragment extends Fragment {
                     break;
             }
 
-            mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            if (isMicro) {
+                mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            }
+
             mediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
-            mediaRecorder.setAudioSamplingRate(44100);
-            mediaRecorder.setAudioEncodingBitRate(16 * 44100);
             mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+
+            if (isMicro) {
+                mediaRecorder.setAudioSamplingRate(44100);
+                mediaRecorder.setAudioEncodingBitRate(16 * 44100);
+                mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            }
 
 
             // Переписать на более подхожящий код
@@ -255,20 +268,12 @@ public class MainFragment extends Fragment {
                     + new StringBuilder("/EDMTRecord_").append(new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss")
                     .format(new Date())).append(".mp4").toString();
 
-
-//            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-//            File f = new File(videoUri);
-//            Uri contentUri = Uri.fromFile(f);
-//            mediaScanIntent.setData(contentUri);
-//            MainActivity.this.sendBroadcast(mediaScanIntent);
-
             mediaRecorder.setOutputFile(videoUri);
             mediaRecorder.setVideoSize(DISPLAY_WIDTH, DISPLAY_HEIGHT);
             mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
-            mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
             mediaRecorder.setVideoEncodingBitRate(cpHigh.videoBitRate);
-            mediaRecorder.setCaptureRate(30);
-            mediaRecorder.setVideoFrameRate(30);
+            mediaRecorder.setCaptureRate(fps);
+            mediaRecorder.setVideoFrameRate(fps);
 
             int rotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
             int orientation = ORIENTATIONS.get(rotation + 90);
@@ -291,6 +296,7 @@ public class MainFragment extends Fragment {
 
         if (resultCode != Activity.RESULT_OK) {
             Toast.makeText(getActivity(), "Доступ запрещен", Toast.LENGTH_SHORT).show();
+            isRecord = false;
             return;
         }
 
@@ -307,8 +313,11 @@ public class MainFragment extends Fragment {
     private class MediaProjectionCallBack extends MediaProjection.Callback {
         @Override
         public void onStop() {
-            mediaRecorder.stop();
-            mediaRecorder.reset();
+            if (isRecord) {
+                isRecord = false;
+                mediaRecorder.stop();
+                mediaRecorder.reset();
+            }
             mediaProjection = null;
             stopRecordScreen();
             super.onStop();
@@ -340,7 +349,9 @@ public class MainFragment extends Fragment {
         switch (requestCode) {
             case REQUEST_PERMISSION: {
                 if ((grantResults.length > 0) && (grantResults[0] + grantResults[1] == PackageManager.PERMISSION_GRANTED)) {
+                    toggleRecord(isRecord);
                 } else {
+                    isRecord = false;
                     Snackbar.make(rootLayout, "Права доступа", Snackbar.LENGTH_INDEFINITE)
                             .setAction("Включить", new View.OnClickListener() {
                                 @Override
