@@ -2,6 +2,8 @@ package com.example.screen_recording.screens.main;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -15,8 +17,10 @@ import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseIntArray;
@@ -24,9 +28,9 @@ import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 import android.widget.VideoView;
 
 import androidx.annotation.NonNull;
@@ -38,6 +42,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.screen_recording.R;
+import com.example.screen_recording.screens.MainActivity;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.IOException;
@@ -48,10 +53,12 @@ public class MainFragment extends Fragment {
 
     private static final int REQUEST_CODE = 1000;
     private static final int REQUEST_PERMISSION = 1001;
+    private boolean permissionToRecordAccepted = false;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private boolean isRecord = false;
     private boolean isPause = false;
     private String videoUri = "";
+    private boolean isTime = false;
 
     private MediaProjectionManager mediaProjectionManager;
     private MediaProjection mediaProjection;
@@ -60,8 +67,8 @@ public class MainFragment extends Fragment {
     private MediaRecorder mediaRecorder;
 
     private int mScreenDensity;
-    private static int DISPLAY_WIDTH = 720;
-    private static int DISPLAY_HEIGHT = 1280;
+    private static int DISPLAY_WIDTH;
+    private static int DISPLAY_HEIGHT;
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -74,7 +81,10 @@ public class MainFragment extends Fragment {
     private CardView rootLayout;
     private VideoView videoView;
     private ImageButton imageTogglePauseAndResume;
-    private ImageButton imageToggleRecord;
+    private ToggleButton toggleButton;
+
+    // Timer
+    private int milliseconds = 3000;
 
     @Nullable
     @Override
@@ -95,23 +105,27 @@ public class MainFragment extends Fragment {
         videoView = view.findViewById(R.id.videoView);
         rootLayout = view.findViewById(R.id.cardView);
         imageTogglePauseAndResume = view.findViewById(R.id.imageTogglePauseAndResume);
-        imageToggleRecord = view.findViewById(R.id.imageToggleRecord);
+        toggleButton = view.findViewById(R.id.toggleButton);
 
         // Event
 
         //Record Start and Stop
-        imageToggleRecord.setOnClickListener(new View.OnClickListener() {
+
+        toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
                         + ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.RECORD_AUDIO)
                         != PackageManager.PERMISSION_GRANTED) {
 
+                    isRecord = false;
+                    toggleButton.setChecked(false);
+
                     if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
                             || ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.RECORD_AUDIO)) {
 
                         isRecord = false;
-
+                        toggleButton.setChecked(false);
                         Snackbar.make(rootLayout, "Разрешения", Snackbar.LENGTH_INDEFINITE)
                                 .setAction("Включить", new View.OnClickListener() {
                                     @Override
@@ -125,7 +139,9 @@ public class MainFragment extends Fragment {
                                                 }, REQUEST_PERMISSION);
                                     }
                                 }).show();
+
                     } else {
+
                         ActivityCompat.requestPermissions(getActivity(),
                                 new String[]{
 
@@ -133,14 +149,30 @@ public class MainFragment extends Fragment {
                                         Manifest.permission.RECORD_AUDIO
 
                                 }, REQUEST_PERMISSION);
+
                     }
                 } else {
-                    toggleRecord(isRecord);
-                    // get Quality
-////                        int selectFPSid = radioGroup.getCheckedRadioButtonId();
-////                        radioButton = findViewById(selectFPSid);
-////                        String btnQuality = String.valueOf(radioButton.getText());
-////                        final int QUALITY = Integer.parseInt(btnQuality.substring(0, btnQuality.length() - 1));
+                    toggleScreenShare(toggleButton);
+
+
+//                    if (!isTime) {
+//                        new CountDownTimer(milliseconds, 1000) {
+//
+//                            public void onTick(long millisUntilFinished) {
+//                                Snackbar.make(rootLayout, "Секунды " + millisUntilFinished / 1000, 500)
+//                                        .show();
+//                            }
+//
+//                            public void onFinish() {
+//                                isTime = true;
+//
+//                            }
+//                        }.start();
+//                    } else {
+//                        isTime = false;
+//                        toggleScreenShare(toggleButton);
+//                    }
+
                 }
             }
         });
@@ -170,13 +202,10 @@ public class MainFragment extends Fragment {
         return view;
     }
 
-    private void toggleRecord(boolean record) {
-        if (!record) {
-            isRecord = true;
-            imageToggleRecord.setImageResource(R.drawable.ic_album_red);
+    private void toggleScreenShare(View v) {
+        SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
-            // get settings
-            SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        if (((ToggleButton) v).isChecked()) {
             int quality = p.getInt("quality", 480);
             boolean micro = p.getBoolean("micro", false);
             int fps = p.getInt("FPS", 15);
@@ -184,23 +213,20 @@ public class MainFragment extends Fragment {
             initRecorder(quality, micro, fps);
             recorderScreen();
 
-            Snackbar.make(rootLayout, "Начало записи", Snackbar.LENGTH_SHORT)
-                    .show();
+            isRecord = true;
+            p.edit().putBoolean("isRecord", isRecord).apply();
         } else {
-            isRecord = false;
-            imageToggleRecord.setImageResource(R.drawable.ic_album_gray);
-
             mediaRecorder.stop();
             mediaRecorder.reset();
-
-            Snackbar.make(rootLayout, "Запись остановлена", Snackbar.LENGTH_SHORT)
-                    .show();
 
             stopRecordScreen();
 
             videoView.setVisibility(View.VISIBLE);
             videoView.setVideoURI(Uri.parse(videoUri));
             videoView.start();
+
+            isRecord = false;
+            p.edit().putBoolean("isRecord", isRecord).apply();
         }
     }
 
@@ -216,7 +242,7 @@ public class MainFragment extends Fragment {
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private VirtualDisplay createVirtualDisplay() {
-        return mediaProjection.createVirtualDisplay("MainActivity", DISPLAY_WIDTH, DISPLAY_HEIGHT, mScreenDensity,
+        return mediaProjection.createVirtualDisplay("MainFragment", DISPLAY_WIDTH, DISPLAY_HEIGHT, mScreenDensity,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                 mediaRecorder.getSurface(), null, null);
     }
@@ -251,21 +277,8 @@ public class MainFragment extends Fragment {
             }
 
 
-            // Переписать на более подхожящий код
-
-//            String recordPath = MainActivity.this.getExternalFilesDir("/").getAbsolutePath();
-//            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_hh_mm_ss", Locale.getDefault());
-//            Date now = new Date();
-//            videoUri = recordPath + "MagaRecord_" + dateFormat.format(now) + ".mp4";
-//
-//            ContentResolver resolver = getApplicationContext().getContentResolver();
-//            Uri audioCollection = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
-//            ContentValues newSongDetails = new ContentValues();
-//            newSongDetails.put(MediaStore.Video.Media.DISPLAY_NAME, videoUri);
-
-
             videoUri = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-                    + new StringBuilder("/EDMTRecord_").append(new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss")
+                    + new StringBuilder("/FreeRecord_").append(new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss")
                     .format(new Date())).append(".mp4").toString();
 
             mediaRecorder.setOutputFile(videoUri);
@@ -288,15 +301,18 @@ public class MainFragment extends Fragment {
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
         if (requestCode != REQUEST_CODE) {
             Toast.makeText(getActivity(), "Unk error", Toast.LENGTH_SHORT).show();
+            isRecord = false;
+            toggleButton.setChecked(false);
             return;
         }
 
         if (resultCode != Activity.RESULT_OK) {
+            Log.i("Разрешения", "Я зашел");
             Toast.makeText(getActivity(), "Доступ запрещен", Toast.LENGTH_SHORT).show();
             isRecord = false;
+            toggleButton.setChecked(false);
             return;
         }
 
@@ -306,6 +322,9 @@ public class MainFragment extends Fragment {
             mediaProjection.registerCallback(mediaProjectionCallBack, null);
             virtualDisplay = createVirtualDisplay();
             mediaRecorder.start();
+        } else {
+            Toast.makeText(getActivity(), "Не удалось запустить запись", Toast.LENGTH_SHORT).show();
+            Log.i("dataActivity", "data = null");
         }
     }
 
@@ -313,8 +332,9 @@ public class MainFragment extends Fragment {
     private class MediaProjectionCallBack extends MediaProjection.Callback {
         @Override
         public void onStop() {
-            if (isRecord) {
+            if (toggleButton.isChecked()) {
                 isRecord = false;
+                toggleButton.setChecked(false);
                 mediaRecorder.stop();
                 mediaRecorder.reset();
             }
@@ -342,16 +362,16 @@ public class MainFragment extends Fragment {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case REQUEST_PERMISSION: {
                 if ((grantResults.length > 0) && (grantResults[0] + grantResults[1] == PackageManager.PERMISSION_GRANTED)) {
-                    toggleRecord(isRecord);
+                    toggleScreenShare(toggleButton);
                 } else {
                     isRecord = false;
+                    toggleButton.setChecked(false);
                     Snackbar.make(rootLayout, "Права доступа", Snackbar.LENGTH_INDEFINITE)
                             .setAction("Включить", new View.OnClickListener() {
                                 @Override
