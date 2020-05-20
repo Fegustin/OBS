@@ -1,16 +1,21 @@
-package com.example.screen_recording.screens.setting;
+package com.example.screen_recording.screens.setting_record;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.ScrollView;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -21,14 +26,14 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.screen_recording.R;
+import com.example.screen_recording.screens.MainActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
-
-import java.util.ArrayList;
 
 public class SettingFragment extends Fragment {
 
     private static final int REQUEST_PERMISSION = 228;
+    private boolean isNightTheme;
 
     private ConstraintLayout layoutQuality;
     private ConstraintLayout layoutFPS;
@@ -37,14 +42,27 @@ public class SettingFragment extends Fragment {
     private TextView textViewQuality;
     private TextView textViewFPS;
     private TextView textViewFile;
+    private Switch switchDarckTheme;
 
     private CharSequence[] mAlertItem;
     SharedPreferences preferences;
+    private Context context;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_setting, container, false);
+        View view = null;
+        preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        isNightTheme = preferences.getBoolean("isNightTheme", false);
+
+        if (isNightTheme) {
+            view = inflater.inflate(R.layout.night_fragment_setting, container, false);
+            context = new ContextThemeWrapper(getActivity(), R.style.AlertDialogNightTheme);
+        } else {
+            view = inflater.inflate(R.layout.fragment_setting, container, false);
+            context = getActivity();
+        }
+
 
         layoutQuality = view.findViewById(R.id.layoutQuality);
         layoutFPS = view.findViewById(R.id.layoutFPS);
@@ -53,8 +71,7 @@ public class SettingFragment extends Fragment {
         textViewQuality = view.findViewById(R.id.textViewQuality);
         textViewFPS = view.findViewById(R.id.textViewFPS);
         textViewFile = view.findViewById(R.id.textViewFile);
-
-        preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        switchDarckTheme = view.findViewById(R.id.switchDarckTheme);
 
         String fileVideoPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString();
         textViewFile.setText(fileVideoPath);
@@ -71,9 +88,13 @@ public class SettingFragment extends Fragment {
                         "Низкое"
                 };
 
-                MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getActivity());
+                MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context);
                 builder.setTitle(R.string.Quality);
-                builder.setIcon(R.drawable.ic_quality);
+                if (isNightTheme) {
+                    builder.setIcon(R.drawable.ic_quality_blue);
+                } else {
+                    builder.setIcon(R.drawable.ic_quality);
+                }
                 builder.setSingleChoiceItems(mAlertItem, preferences.getInt("checkedItemQuality", 0), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -142,7 +163,6 @@ public class SettingFragment extends Fragment {
                                 REQUEST_PERMISSION);
                     }
                 } else {
-                    checkBoxMicro.setChecked(true);
                     preferences.edit().putBoolean("micro", checkBoxMicro.isChecked()).apply();
                 }
             }
@@ -159,9 +179,13 @@ public class SettingFragment extends Fragment {
                         "15FPS"
                 };
 
-                MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getActivity());
+                MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context);
                 builder.setTitle(R.string.FPS);
-                builder.setIcon(R.drawable.ic_videogame);
+                if (isNightTheme) {
+                    builder.setIcon(R.drawable.ic_videogame_blue);
+                } else {
+                    builder.setIcon(R.drawable.ic_videogame);
+                }
                 builder.setSingleChoiceItems(mAlertItem, preferences.getInt("checkedItemFPS", 0), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -195,11 +219,34 @@ public class SettingFragment extends Fragment {
             }
         });
 
+        // Set Dark theme
+        switchDarckTheme.setChecked(preferences.getBoolean("switchTheme", false));
+        switchDarckTheme.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if (switchDarckTheme.isChecked()) {
+                    isNightTheme = true;
+                    preferences.edit().putBoolean("isNightTheme", isNightTheme).apply();
+                    preferences.edit().putBoolean("switchTheme", true).apply();
+                } else {
+                    isNightTheme = false;
+                    preferences.edit().putBoolean("isNightTheme", isNightTheme).apply();
+                    preferences.edit().putBoolean("switchTheme", false).apply();
+                }
+
+                Intent i = getActivity().getBaseContext().getPackageManager()
+                        .getLaunchIntentForPackage(getActivity().getBaseContext().getPackageName());
+                i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(i);
+            }
+        });
+
         return view;
     }
 
     private void showTextViewQuality(int quality) {
-        switch (quality){
+        switch (quality) {
             case 1080:
                 textViewQuality.setText("Высокое");
                 break;
@@ -213,7 +260,7 @@ public class SettingFragment extends Fragment {
     }
 
     private void showTextViewFPS(int fps) {
-        switch (fps){
+        switch (fps) {
             case 60:
                 textViewFPS.setText("60FPS");
                 break;

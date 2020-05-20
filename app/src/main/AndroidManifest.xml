@@ -13,12 +13,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-<!--        <service-->
-<!--            android:name=".service.MyService"-->
-<!--            android:enabled="true"-->
-<!--            android:exported="true" />-->
+        <service
+            android:name=".service.TimerService"
+            android:enabled="true"
+            android:exported="true"></service>
 
-        <activity android:name=".screens.MainActivity"
+        <activity
+            android:name=".screens.MainActivity"
             android:screenOrientation="locked">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -1,73 +1,56 @@
 package com.example.screen_recording.screens;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.example.screen_recording.R;
-import com.example.screen_recording.screens.main.MainFragment;
-import com.example.screen_recording.screens.setting.SettingFragment;
+import com.example.screen_recording.screens.main_record.MainFragment;
+import com.example.screen_recording.screens.setting_record.SettingFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
 
+    SharedPreferences p;
     private int currentPageId = -1;
+    private boolean isNightTheme;
+    Fragment selectedFragment;
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
+    private ConstraintLayout constraintLayout;
+
+
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        p = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+        isNightTheme = p.getBoolean("isNightTheme", false);
+
+        if (isNightTheme) {
+            setTheme(R.style.NightTheme);
+        }
         setContentView(R.layout.activity_main);
-
-
-        // Доделать потом
-//        if(!Settings.canDrawOverlays(this)){
-//            // ask for setting
-//            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-//                    Uri.parse("package:" + getPackageName()));
-//            startActivityForResult(intent, 228);
-//        }
-
-        // Bottom Navigation
-
-//        WindowManager manager = (WindowManager) getSystemService(WINDOW_SERVICE);
-//        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-//                100,
-//                100,
-//                WindowManager.LayoutParams.TYPE_PHONE,
-//                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-//                PixelFormat.TRANSPARENT);
-//
-//        params.gravity = Gravity.CENTER_HORIZONTAL;
-//        params.x = 0;
-//        params.y = 0;
-//
-//        ConstraintLayout constraintLayout = (ConstraintLayout) LayoutInflater.from(this).inflate(R.layout.over_main, null);
-//        ImageView imageViewShow = constraintLayout.findViewById(R.id.imageViewShow);
-//        imageViewShow.setImageResource(R.drawable.ic_home);
-//
-//        manager.addView(constraintLayout, params);
+        constraintLayout = findViewById(R.id.rootLayout);
 
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigation);
+        if (isNightTheme) {
+            bottomNavigationView.setBackgroundResource(R.color.colorBlue);
+            constraintLayout.setBackgroundResource(R.color.colorBlack);
+        }
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, new MainFragment()).commit();
         }
 
-
         bottomNavigationView.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-
-                SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
                 boolean isRecording = p.getBoolean("isRecord", false);
                 if (isRecording) {
                     Toast.makeText(MainActivity.this, "Во время записи нельзя меня настройки", Toast.LENGTH_SHORT).show();
@@ -77,7 +60,8 @@ public class MainActivity extends AppCompatActivity {
                 if (currentPageId == item.getItemId()){
                     return false;
                 } else {
-                    Fragment selectedFragment = null;
+                    currentPageId = item.getItemId();
+                    selectedFragment = null;
                     switch (item.getItemId()) {
                         case R.id.mainMenu:
                             selectedFragment = new MainFragment();
@@ -92,7 +76,5 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
-
     }
 }

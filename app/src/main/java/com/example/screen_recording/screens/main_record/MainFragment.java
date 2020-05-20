@@ -1,13 +1,14 @@
-package com.example.screen_recording.screens.main;
+package com.example.screen_recording.screens.main_record;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlarmManager;
-import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.CamcorderProfile;
@@ -17,10 +18,8 @@ import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.os.Environment;
 import android.preference.PreferenceManager;
-import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseIntArray;
@@ -28,7 +27,9 @@ import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 import android.widget.VideoView;
@@ -40,9 +41,11 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.screen_recording.R;
-import com.example.screen_recording.screens.MainActivity;
+import com.example.screen_recording.service.TimerService;
+import com.example.screen_recording.view_model.TimerViewModel;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.IOException;
@@ -51,14 +54,17 @@ import java.util.Date;
 
 public class MainFragment extends Fragment {
 
+    SharedPreferences p;
+    TimerViewModel model;
+
     private static final int REQUEST_CODE = 1000;
     private static final int REQUEST_PERMISSION = 1001;
-    private boolean permissionToRecordAccepted = false;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private boolean isRecord = false;
     private boolean isPause = false;
+    private boolean isNightTheme = false;
     private String videoUri = "";
-    private boolean isTime = false;
+    private String timerState = "";
 
     private MediaProjectionManager mediaProjectionManager;
     private MediaProjection mediaProjection;
@@ -82,14 +88,14 @@ public class MainFragment extends Fragment {
     private VideoView videoView;
     private ImageButton imageTogglePauseAndResume;
     private ToggleButton toggleButton;
-
-    // Timer
-    private int milliseconds = 3000;
+    private TextView textViewTimer;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_main, container, false);
+        p = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        isNightTheme = p.getBoolean("isNightTheme", false);
 
         DisplayMetrics metrics = new DisplayMetrics();
         getActivity().getWindowManager().getDefaultDisplay().getMetrics(metrics);
@@ -106,11 +112,21 @@ public class MainFragment extends Fragment {
         rootLayout = view.findViewById(R.id.cardView);
         imageTogglePauseAndResume = view.findViewById(R.id.imageTogglePauseAndResume);
         toggleButton = view.findViewById(R.id.toggleButton);
+        textViewTimer = view.findViewById(R.id.textViewTimer);
+
+        // ViewModal
+        model = new ViewModelProvider(getActivity()).get(TimerViewModel.class);
+        textViewTimer.setText(model.timeState);
+
+        if (isNightTheme) {
+            rootLayout.setBackgroundResource(R.color.colorBlack);
+            imageTogglePauseAndResume.setBackgroundResource(R.color.colorBlue);
+            textViewTimer.setTextColor(Color.WHITE);
+        }
 
         // Event
 
-        //Record Start and Stop
-
+        //Record Toggle Start and Stop
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -118,14 +134,12 @@ public class MainFragment extends Fragment {
                         + ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.RECORD_AUDIO)
                         != PackageManager.PERMISSION_GRANTED) {
 
-                    isRecord = false;
-                    toggleButton.setChecked(false);
+                    errorRecordAction();
 
                     if (ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
                             || ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.RECORD_AUDIO)) {
 
-                        isRecord = false;
-                        toggleButton.setChecked(false);
+                        errorRecordAction();
                         Snackbar.make(rootLayout, "Разрешения", Snackbar.LENGTH_INDEFINITE)
                                 .setAction("Включить", new View.OnClickListener() {
                                     @Override
@@ -153,26 +167,6 @@ public class MainFragment extends Fragment {
                     }
                 } else {
                     toggleScreenShare(toggleButton);
-
-
-//                    if (!isTime) {
-//                        new CountDownTimer(milliseconds, 1000) {
-//
-//                            public void onTick(long millisUntilFinished) {
-//                                Snackbar.make(rootLayout, "Секунды " + millisUntilFinished / 1000, 500)
-//                                        .show();
-//                            }
-//
-//                            public void onFinish() {
-//                                isTime = true;
-//
-//                            }
-//                        }.start();
-//                    } else {
-//                        isTime = false;
-//                        toggleScreenShare(toggleButton);
-//                    }
-
                 }
             }
         });
@@ -198,12 +192,10 @@ public class MainFragment extends Fragment {
                 }
             }
         });
-
         return view;
     }
 
     private void toggleScreenShare(View v) {
-        SharedPreferences p = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
         if (((ToggleButton) v).isChecked()) {
             int quality = p.getInt("quality", 480);
@@ -227,10 +219,19 @@ public class MainFragment extends Fragment {
 
             isRecord = false;
             p.edit().putBoolean("isRecord", isRecord).apply();
+
+            getActivity().stopService(new Intent(getContext(), TimerService.class));
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private BroadcastReceiver uiUpdated = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            textViewTimer.setText(intent.getStringExtra("countdown"));
+            model.timeState = intent.getStringExtra("countdown");
+        }
+    };
+
     private void recorderScreen() {
         if (mediaProjection == null) {
             startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), REQUEST_CODE);
@@ -240,14 +241,12 @@ public class MainFragment extends Fragment {
         mediaRecorder.start();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private VirtualDisplay createVirtualDisplay() {
         return mediaProjection.createVirtualDisplay("MainFragment", DISPLAY_WIDTH, DISPLAY_HEIGHT, mScreenDensity,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
                 mediaRecorder.getSurface(), null, null);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void initRecorder(int QUALITY, boolean isMicro, int fps) {
         try {
             CamcorderProfile cpHigh;
@@ -297,22 +296,19 @@ public class MainFragment extends Fragment {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != REQUEST_CODE) {
             Toast.makeText(getActivity(), "Unk error", Toast.LENGTH_SHORT).show();
-            isRecord = false;
-            toggleButton.setChecked(false);
+            errorRecordAction();
             return;
         }
 
         if (resultCode != Activity.RESULT_OK) {
             Log.i("Разрешения", "Я зашел");
             Toast.makeText(getActivity(), "Доступ запрещен", Toast.LENGTH_SHORT).show();
-            isRecord = false;
-            toggleButton.setChecked(false);
+            errorRecordAction();
             return;
         }
 
@@ -326,15 +322,16 @@ public class MainFragment extends Fragment {
             Toast.makeText(getActivity(), "Не удалось запустить запись", Toast.LENGTH_SHORT).show();
             Log.i("dataActivity", "data = null");
         }
+
+        getActivity().startService(new Intent(getContext(), TimerService.class));
+        getActivity().registerReceiver(uiUpdated, new IntentFilter("COUNTDOWN_UPDATED"));
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private class MediaProjectionCallBack extends MediaProjection.Callback {
         @Override
         public void onStop() {
             if (toggleButton.isChecked()) {
-                isRecord = false;
-                toggleButton.setChecked(false);
+                errorRecordAction();
                 mediaRecorder.stop();
                 mediaRecorder.reset();
             }
@@ -344,7 +341,6 @@ public class MainFragment extends Fragment {
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void stopRecordScreen() {
         if (virtualDisplay == null) {
             return;
@@ -353,7 +349,6 @@ public class MainFragment extends Fragment {
         destroyMediaProject();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void destroyMediaProject() {
         if (mediaProjection != null) {
             mediaProjection.unregisterCallback(mediaProjectionCallBack);
@@ -370,8 +365,7 @@ public class MainFragment extends Fragment {
                 if ((grantResults.length > 0) && (grantResults[0] + grantResults[1] == PackageManager.PERMISSION_GRANTED)) {
                     toggleScreenShare(toggleButton);
                 } else {
-                    isRecord = false;
-                    toggleButton.setChecked(false);
+                    errorRecordAction();
                     Snackbar.make(rootLayout, "Права доступа", Snackbar.LENGTH_INDEFINITE)
                             .setAction("Включить", new View.OnClickListener() {
                                 @Override
@@ -389,5 +383,12 @@ public class MainFragment extends Fragment {
                 return;
             }
         }
+    }
+
+    private void errorRecordAction() {
+        getActivity().stopService(new Intent(getContext(), TimerService.class));
+        isRecord = false;
+        toggleButton.setChecked(false);
+        mediaRecorder.reset();
     }
 }

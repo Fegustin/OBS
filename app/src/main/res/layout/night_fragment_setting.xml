@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/scrollViewMain"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/colorBlack">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/layoutSetting"
@@ -19,7 +21,7 @@
             android:layout_marginTop="8dp"
             android:layout_marginBottom="8dp"
             android:text="Настройки записи экрана"
-            android:textColor="@color/colorPrimaryDark"
+            android:textColor="@color/colorBlue"
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toTopOf="@+id/view5"
@@ -34,7 +36,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
-            android:background="@color/colorPrimary"
+            android:background="@color/colorBlue"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
@@ -60,7 +62,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/ic_quality" />
+                app:srcCompat="@drawable/ic_quality_blue" />
 
             <TextView
                 android:id="@+id/textView"
@@ -68,7 +70,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="Качество"
-                android:textColor="@android:color/black"
+                android:textColor="@android:color/white"
                 android:textSize="18sp"
                 android:textStyle="normal"
                 app:layout_constraintStart_toEndOf="@+id/imageViewHQ"
@@ -79,7 +81,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="720p"
-                android:textColor="@android:color/black"
+                android:textColor="@android:color/white"
                 android:textSize="18sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -91,7 +93,7 @@
                 android:layout_width="1dp"
                 android:layout_height="0dp"
                 android:layout_marginEnd="80dp"
-                android:background="@color/colorPrimary"
+                android:background="@color/colorBlue"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
@@ -104,6 +106,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="8dp"
                 android:text="При высоком качестве"
+                android:textColor="@color/colorGray"
                 android:textSize="12sp"
                 app:layout_constraintStart_toEndOf="@+id/imageViewHQ"
                 app:layout_constraintTop_toBottomOf="@+id/textView" />
@@ -114,6 +117,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="увеличивается размер файла"
+                android:textColor="@color/colorGray"
                 android:textSize="12sp"
                 app:layout_constraintStart_toEndOf="@+id/imageViewHQ"
                 app:layout_constraintTop_toBottomOf="@+id/textView6" />
@@ -139,7 +143,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/ic_videogame" />
+                app:srcCompat="@drawable/ic_videogame_blue" />
 
             <TextView
                 android:id="@+id/textView8"
@@ -147,7 +151,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="FPS"
-                android:textColor="@android:color/black"
+                android:textColor="@android:color/white"
                 android:textSize="18sp"
                 android:textStyle="normal"
                 app:layout_constraintStart_toEndOf="@+id/imageViewFPS"
@@ -160,6 +164,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="8dp"
                 android:text="Высокая частота кадров"
+                android:textColor="@color/colorGray"
                 android:textSize="12sp"
                 app:layout_constraintStart_toEndOf="@+id/imageViewFPS"
                 app:layout_constraintTop_toBottomOf="@+id/textView8" />
@@ -170,6 +175,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="создаёт более плавное видео"
+                android:textColor="@color/colorGray"
                 android:textSize="12sp"
                 app:layout_constraintStart_toEndOf="@+id/imageViewFPS"
                 app:layout_constraintTop_toBottomOf="@+id/textView9" />
@@ -179,7 +185,7 @@
                 android:layout_width="1dp"
                 android:layout_height="0dp"
                 android:layout_marginEnd="80dp"
-                android:background="@color/colorPrimary"
+                android:background="@color/colorBlue"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -189,7 +195,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="60FPS"
-                android:textColor="@android:color/black"
+                android:textColor="@android:color/white"
                 android:textSize="18sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -212,7 +218,7 @@
                 android:layout_width="1sp"
                 android:layout_height="0dp"
                 android:layout_marginEnd="80dp"
-                android:background="@color/colorPrimary"
+                android:background="@color/colorBlue"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
@@ -227,7 +233,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/ic_keyboard_voice" />
+                app:srcCompat="@drawable/ic_mic_blue" />
 
             <TextView
                 android:id="@+id/textView4"
@@ -235,7 +241,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="Запись звука"
-                android:textColor="@android:color/black"
+                android:textColor="@android:color/white"
                 android:textSize="18sp"
                 android:textStyle="normal"
                 app:layout_constraintStart_toEndOf="@+id/imageViewMicro"
@@ -259,6 +265,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="8dp"
                 android:text="Используйте микрофон"
+                android:textColor="@color/colorGray"
                 android:textSize="12sp"
                 app:layout_constraintStart_toEndOf="@+id/imageViewMicro"
                 app:layout_constraintTop_toBottomOf="@+id/textView4" />
@@ -269,6 +276,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="для записи звука"
+                android:textColor="@color/colorGray"
                 android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/imageViewMicro"
@@ -294,7 +302,7 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/ic_file" />
+                app:srcCompat="@drawable/ic_file_blue" />
 
             <TextView
                 android:id="@+id/textView3"
@@ -302,7 +310,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="Местоположение"
-                android:textColor="@android:color/black"
+                android:textColor="@android:color/white"
                 android:textSize="18sp"
                 android:textStyle="normal"
                 app:layout_constraintStart_toEndOf="@+id/imageViewFile"
@@ -315,6 +323,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="8dp"
                 android:text="TextView"
+                android:textColor="@color/colorGray"
                 android:textSize="12sp"
                 app:layout_constraintStart_toEndOf="@+id/imageViewFile"
                 app:layout_constraintTop_toBottomOf="@+id/textView3" />
@@ -325,6 +334,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:text="/FreeRecord_{Дата записи видео}.mp4"
+                android:textColor="@color/colorGray"
                 android:textSize="12sp"
                 app:layout_constraintStart_toEndOf="@+id/imageViewFile"
                 app:layout_constraintTop_toBottomOf="@+id/textViewFile" />
@@ -348,15 +358,15 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/ic_book_blue" />
+                app:srcCompat="@drawable/ic_book_orange" />
 
             <TextView
                 android:id="@+id/textView12"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:text="Темная тема"
-                android:textColor="@android:color/black"
+                android:text="Светлая тема"
+                android:textColor="@android:color/white"
                 android:textSize="18sp"
                 android:textStyle="normal"
                 app:layout_constraintStart_toEndOf="@+id/imageViewTheme"
@@ -369,6 +379,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="8dp"
                 android:text="Цветовая тема для"
+                android:textColor="@color/colorGray"
                 android:textSize="12sp"
                 app:layout_constraintStart_toEndOf="@+id/imageViewTheme"
                 app:layout_constraintTop_toBottomOf="@+id/textView12" />
@@ -378,7 +389,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:text="отдыха глаз"
+                android:text="сил добра и справедливости"
+                android:textColor="@color/colorGray"
                 android:textSize="12sp"
                 app:layout_constraintStart_toEndOf="@+id/imageViewTheme"
                 app:layout_constraintTop_toBottomOf="@+id/textView14" />
@@ -388,7 +400,7 @@
                 android:layout_width="1dp"
                 android:layout_height="0dp"
                 android:layout_marginEnd="80dp"
-                android:background="@color/colorPrimary"
+                android:background="@color/colorBlue"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -404,4 +416,5 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
+
 </ScrollView>
