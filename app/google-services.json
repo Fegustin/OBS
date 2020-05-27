@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "295491177595",
+    "firebase_url": "https://screenrecorder-a702a.firebaseio.com",
+    "project_id": "screenrecorder-a702a",
+    "storage_bucket": "screenrecorder-a702a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:295491177595:android:a35d44382b643cfd7166de",
+        "android_client_info": {
+          "package_name": "com.example.screen_recording"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "295491177595-2i880i6kjnfup8h25kik53u0rg8b5l3q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.screen_recording",
+            "certificate_hash": "b0e142dab61ec140d58d36ca8140ebcc53937638"
+          }
+        },
+        {
+          "client_id": "295491177595-u0m4hmhkfcd5q4anpqholbhprg7jhpp1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNlHI8kUhkoNkCr69W2EghR_OK-N4oafg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "295491177595-u0m4hmhkfcd5q4anpqholbhprg7jhpp1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

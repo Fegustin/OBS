@@ -60,5 +60,4 @@ public class TimerService extends Service {
         Count.cancel();
         super.onDestroy();
     }
-
 }

@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
@@ -13,31 +14,37 @@ import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
 import android.widget.CheckBox;
-import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
+import com.example.screen_recording.BuildConfig;
 import com.example.screen_recording.R;
-import com.example.screen_recording.screens.MainActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
+
+import java.io.File;
 
 public class SettingFragment extends Fragment {
 
     private static final int REQUEST_PERMISSION = 228;
     private boolean isNightTheme;
+    String fileVideoPath = "";
 
     private ConstraintLayout layoutQuality;
     private ConstraintLayout layoutFPS;
     private ConstraintLayout layoutSetting;
+    private ConstraintLayout layoutFile;
     private CheckBox checkBoxMicro;
     private TextView textViewQuality;
     private TextView textViewFPS;
@@ -63,21 +70,22 @@ public class SettingFragment extends Fragment {
             context = getActivity();
         }
 
-
+        // View
         layoutQuality = view.findViewById(R.id.layoutQuality);
         layoutFPS = view.findViewById(R.id.layoutFPS);
         layoutSetting = view.findViewById(R.id.layoutSetting);
+        layoutFile = view.findViewById(R.id.layoutFile);
         checkBoxMicro = view.findViewById(R.id.checkBoxMicro);
         textViewQuality = view.findViewById(R.id.textViewQuality);
         textViewFPS = view.findViewById(R.id.textViewFPS);
         textViewFile = view.findViewById(R.id.textViewFile);
         switchDarckTheme = view.findViewById(R.id.switchDarckTheme);
 
-        String fileVideoPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString();
+        fileVideoPath = "DCMI/FreeRecord_{дата записи видео}.mp4";
         textViewFile.setText(fileVideoPath);
 
         // Set Quality and get Quality
-        showTextViewQuality(preferences.getInt("quality", 15));
+        showTextViewQuality(preferences.getInt("quality", 1080));
         layoutQuality.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -115,7 +123,7 @@ public class SettingFragment extends Fragment {
                                 dialog.dismiss();
                                 break;
                         }
-                        showTextViewQuality(preferences.getInt("quality", 15));
+                        showTextViewQuality(preferences.getInt("quality", 1080));
                     }
                 });
                 builder.setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
@@ -169,7 +177,7 @@ public class SettingFragment extends Fragment {
         });
 
         // Set Fps and Get Fps
-        showTextViewFPS(preferences.getInt("FPS", 15));
+        showTextViewFPS(preferences.getInt("FPS", 60));
         layoutFPS.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -206,7 +214,7 @@ public class SettingFragment extends Fragment {
                                 dialog.dismiss();
                                 break;
                         }
-                        showTextViewFPS(preferences.getInt("FPS", 15));
+                        showTextViewFPS(preferences.getInt("FPS", 60));
                     }
                 });
                 builder.setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
@@ -241,7 +249,6 @@ public class SettingFragment extends Fragment {
                 startActivity(i);
             }
         });
-
         return view;
     }
 
