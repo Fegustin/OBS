@@ -81,7 +81,7 @@ public class SettingFragment extends Fragment {
         textViewFile = view.findViewById(R.id.textViewFile);
         switchDarckTheme = view.findViewById(R.id.switchDarckTheme);
 
-        fileVideoPath = "DCMI/FreeRecord_{дата записи видео}.mp4";
+        fileVideoPath = "DCIM/FreeRecord_{дата записи видео}.mp4";
         textViewFile.setText(fileVideoPath);
 
         // Set Quality and get Quality

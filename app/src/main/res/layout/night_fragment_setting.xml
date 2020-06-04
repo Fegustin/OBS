@@ -328,16 +328,6 @@
                 app:layout_constraintStart_toEndOf="@+id/imageViewFile"
                 app:layout_constraintTop_toBottomOf="@+id/textView3" />
 
-            <TextView
-                android:id="@+id/textView13"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:text="/FreeRecord_{Дата записи видео}.mp4"
-                android:textColor="@color/colorGray"
-                android:textSize="12sp"
-                app:layout_constraintStart_toEndOf="@+id/imageViewFile"
-                app:layout_constraintTop_toBottomOf="@+id/textViewFile" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout

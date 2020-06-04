@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.UriPermission;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.hardware.display.DisplayManager;
@@ -20,6 +21,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.provider.DocumentsContract;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseIntArray;
@@ -27,6 +29,7 @@ import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -38,6 +41,7 @@ import androidx.annotation.RequiresApi;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.documentfile.provider.DocumentFile;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -49,7 +53,9 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class MainFragment extends Fragment {
 
@@ -57,7 +63,7 @@ public class MainFragment extends Fragment {
     TimerViewModel model;
     Intent intent;
 
-    private static final int REQUEST_CODE = 1000;
+    private static final int REQUEST_CODE_VIDEO = 1000;
     private static final int REQUEST_PERMISSION = 1001;
     private boolean isNightTheme = false;
 
@@ -138,6 +144,7 @@ public class MainFragment extends Fragment {
                         recordVideo();
                     } else {
                         getActivity().stopService(intent);
+                        getActivity().stopService(new Intent(getActivity(), TimerService.class));
                     }
                 }
             }
@@ -147,33 +154,48 @@ public class MainFragment extends Fragment {
 
     private void recordVideo() {
         mediaProjectionManager = (MediaProjectionManager) getActivity().getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-        startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), REQUEST_CODE);
+        startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(), REQUEST_CODE_VIDEO);
     }
+
+    private BroadcastReceiver uiUpdated = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            textViewTimer.setText(intent.getStringExtra("countdown"));
+            model.timeState = intent.getStringExtra("countdown");
+        }
+    };
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != REQUEST_CODE) {
-            toggleButton.setChecked(false);
-            Toast.makeText(getActivity(), "Unk error", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        switch (requestCode) {
+            case REQUEST_CODE_VIDEO:
 
-        if (resultCode != Activity.RESULT_OK) {
-            toggleButton.setChecked(false);
-            Toast.makeText(getActivity(), "Доступ запрещен", Toast.LENGTH_SHORT).show();
-            return;
-        }
+                if (resultCode != Activity.RESULT_OK) {
+                    toggleButton.setChecked(false);
+                    Toast.makeText(getActivity(), "Доступ запрещен", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-        intent = new Intent(getActivity(), RecordService.class)
-                .putExtra("code", resultCode)
-                .putExtra("data", data);
+                intent = new Intent(getActivity(), RecordService.class)
+                        .putExtra("code", resultCode)
+                        .putExtra("data", data);
 
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getActivity().startForegroundService(intent);
-        } else {
-            getActivity().startService(intent);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    getActivity().startForegroundService(intent);
+                } else {
+                    getActivity().startService(intent);
+                }
+
+                getActivity().startService(new Intent(getActivity(), TimerService.class));
+                getActivity().registerReceiver(uiUpdated, new IntentFilter("COUNTDOWN_UPDATED"));
+                break;
+            default:
+                toggleButton.setChecked(false);
+                Toast.makeText(getActivity(), "Ошибка", Toast.LENGTH_SHORT).show();
+                return;
         }
     }
 

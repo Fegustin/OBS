@@ -314,7 +314,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="8dp"
-                android:text="DCMI/FreeRecord_{дата записи видео}.mp4"
+                android:text="TextView"
                 android:textSize="12sp"
                 app:layout_constraintStart_toEndOf="@+id/imageViewFile"
                 app:layout_constraintTop_toBottomOf="@+id/textView3" />
