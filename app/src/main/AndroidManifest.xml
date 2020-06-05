@@ -26,7 +26,7 @@
         <service
             android:name=".service.TimerService"
             android:enabled="true"
-            android:exported="true"
+            android:exported="false"
             android:permission="TODO">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />

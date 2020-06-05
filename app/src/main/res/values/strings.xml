@@ -4,6 +4,8 @@
     <string name="stop_record">Стоп</string>
     <string name="Quality">Качество</string>
     <string name="FPS">FPS</string>
+    <string name="nav_main">Главная</string>
+    <string name="nav_setting">Настройки</string>
 
     <string-array name="quality_array">
         <item>1080p</item>

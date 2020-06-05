@@ -44,7 +44,6 @@ public class SettingFragment extends Fragment {
     private ConstraintLayout layoutQuality;
     private ConstraintLayout layoutFPS;
     private ConstraintLayout layoutSetting;
-    private ConstraintLayout layoutFile;
     private CheckBox checkBoxMicro;
     private TextView textViewQuality;
     private TextView textViewFPS;
@@ -74,7 +73,6 @@ public class SettingFragment extends Fragment {
         layoutQuality = view.findViewById(R.id.layoutQuality);
         layoutFPS = view.findViewById(R.id.layoutFPS);
         layoutSetting = view.findViewById(R.id.layoutSetting);
-        layoutFile = view.findViewById(R.id.layoutFile);
         checkBoxMicro = view.findViewById(R.id.checkBoxMicro);
         textViewQuality = view.findViewById(R.id.textViewQuality);
         textViewFPS = view.findViewById(R.id.textViewFPS);
